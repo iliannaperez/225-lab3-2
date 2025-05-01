@@ -3,10 +3,10 @@ pipeline {
 
     environment {
         DOCKER_CREDENTIALS_ID = 'roseaw-dockerhub'
-        DOCKER_IMAGE = 'cithit/roseaw'                                                 // <------change this
+        DOCKER_IMAGE = 'cithit/perezi3' 
         IMAGE_TAG = "build-${BUILD_NUMBER}"
-        GITHUB_URL = 'https://github.com/miamioh-cit/225-lab3-2.git'                   // <------change this
-        KUBECONFIG = credentials('roseaw-225')                                             // <------change this
+        GITHUB_URL = 'https://github.com/iliannaperez/225-lab3-2.git'
+        KUBECONFIG = credentials('perezi3-225')
     }
 
     stages {
@@ -38,15 +38,13 @@ pipeline {
         stage('Deploy to Dev Environment using NodePort') {
             steps {
                 script {
-                    // Set up Kubernetes configuration using the specified KUBECONFIG
                     def kubeConfig = readFile(KUBECONFIG)
-                    // Update deployment-dev.yaml to use the new image tag
                     sh "sed -i 's|${DOCKER_IMAGE}:latest|${DOCKER_IMAGE}:${IMAGE_TAG}|' deployment.yaml"
                     sh "kubectl apply -f deployment.yaml"
                 }
             }
         }
- 
+
         stage('Check Kubernetes Cluster') {
             steps {
                 script {
@@ -55,15 +53,31 @@ pipeline {
             }
         }
     }
+
     post {
         success {
-            slackSend([color: "good", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"])
+            slackSend(
+                channel: '#build-status',
+                color: 'good',
+                message: "✅ Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                tokenCredentialId: 'slack-id'
+            )
         }
         unstable {
-            slackSend([color: "warning", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"])
+            slackSend(
+                channel: '#build-status',
+                color: 'warning',
+                message: "⚠️ Build UNSTABLE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                tokenCredentialId: 'slack-id'
+            )
         }
         failure {
-            slackSend([color: "danger", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"])
+            slackSend(
+                channel: '#build-status',
+                color: 'danger',
+                message: "❌ Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                tokenCredentialId: 'slack-id'
+            )
+        }
     }
-}
 }
